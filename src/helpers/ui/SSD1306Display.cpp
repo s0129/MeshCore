@@ -19,7 +19,12 @@ ColorVal UIColor::corp_blue = SSD1306_WHITE;
 
 bool SSD1306Display::begin() {
   if (!_isOn) {
-    if (_peripher_power) _peripher_power->claim();
+    if (_peripher_power) {
+      _peripher_power->claim();
+      // The panel needs its supply to settle before accepting commands,
+      // otherwise the init sequence is lost and the display stays blank.
+      delay(SSD1306_POWER_SETTLE_MS);
+    }
     _isOn = true;
   }
   #ifdef DISPLAY_ROTATION
@@ -30,9 +35,8 @@ bool SSD1306Display::begin() {
 
 void SSD1306Display::turnOn() {
   if (!_isOn) {
-    if (_peripher_power) _peripher_power->claim();
-    _isOn = true;  // set before begin() to prevent double claim
-    if (_peripher_power) begin();  // re-init display after power was cut
+    // begin() claims the power pin, waits for the rail to settle, then re-inits.
+    begin();
   }
   display.ssd1306_command(SSD1306_DISPLAYON);
 }

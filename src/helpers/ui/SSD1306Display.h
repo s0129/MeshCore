@@ -15,6 +15,12 @@
   #define DISPLAY_ADDRESS   0x3C
 #endif
 
+// Time allowed for a switched display supply to settle before the panel is
+// initialised. SSD1306 needs ~100ms after VDD is applied.
+#ifndef SSD1306_POWER_SETTLE_MS
+  #define SSD1306_POWER_SETTLE_MS 300
+#endif
+
 class SSD1306Display : public DisplayDriver {
   Adafruit_SSD1306 display;
   bool _isOn;
@@ -23,11 +29,14 @@ class SSD1306Display : public DisplayDriver {
 
   bool i2c_probe(TwoWire& wire, uint8_t addr);
 public:
-  SSD1306Display(RefCountedDigitalPin* peripher_power=NULL) : DisplayDriver(128, 64), 
-      display(128, 64, &Wire, PIN_OLED_RESET),
+  SSD1306Display(RefCountedDigitalPin* peripher_power=NULL, uint8_t width=128, uint8_t height=64) : DisplayDriver(width, height),
+      display(width, height, &Wire, PIN_OLED_RESET),
       _peripher_power(peripher_power)
   {
-    _isOn = false; 
+    // Compact screens render single-line, ellipsized text. GFX wrapping would
+    // also make getTextBounds() underestimate the width of long strings.
+    if (height == 32) display.setTextWrap(false);
+    _isOn = false;
   }
   bool begin();
 

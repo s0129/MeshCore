@@ -238,6 +238,7 @@ void UITask::renderCurrScreen() {
   if (_display == NULL) return;  // assert() ??
 
   char tmp[80];
+  const bool compact = _display->height() == 32;
   if (_alert[0]) {
     _display->setTextSize(1.4);
     uint16_t textWidth = _display->getTextWidth(_alert);
@@ -252,19 +253,26 @@ void UITask::renderCurrScreen() {
     _display->setCursor(0, 0);
     _display->setTextSize(1);
     _display->setColor(UIColor::primary_txt);
-    _display->print(_node_prefs->node_name);
+    if (compact) _display->drawTextEllipsized(0, 0, _display->width(), _node_prefs->node_name);
+    else _display->print(_node_prefs->node_name);
 
     _display->setCursor(0, 12);
     _display->setColor(UIColor::secondary_txt);
-    _display->print(_origin);
+    if (compact) _display->drawTextEllipsized(0, 12, _display->width() - 28, _origin);
+    else _display->print(_origin);
     _display->setCursor(0, 24);
-    _display->print(_msg);
+    if (compact) _display->drawTextEllipsized(0, 24, _display->width(), _msg);
+    else _display->print(_msg);
 
-    _display->setCursor(_display->width() - 28, 9);
-    _display->setTextSize(2);
+    _display->setTextSize(compact ? 1 : 2);
     _display->setColor(UIColor::primary_txt);
     sprintf(tmp, "%d", _msgcount);
-    _display->print(tmp);
+    if (compact) {
+      _display->drawTextRightAlign(_display->width(), 12, tmp);
+    } else {
+      _display->setCursor(_display->width() - 28, 9);
+      _display->print(tmp);
+    }
     _display->setColor(UIColor::secondary_txt); // last color will be kept on T114
   } else if ((millis() - ui_started_at) < BOOT_SCREEN_MILLIS) { // boot screen
     // meshcore logo
@@ -277,33 +285,35 @@ void UITask::renderCurrScreen() {
     _display->setTextSize(1);
     uint16_t textWidth = _display->getTextWidth(_version_info);
     _display->setCursor((_display->width() - textWidth) / 2, 22);
-    _display->print(_version_info);
+    if (compact) _display->drawTextEllipsized(0, 22, _display->width(), _version_info);
+    else _display->print(_version_info);
   } else {  // home screen
     // node name
     _display->setCursor(0, 0);
     _display->setTextSize(1);
     _display->setColor(UIColor::primary_txt);
-    _display->print(_node_prefs->node_name);
+    if (compact) _display->drawTextEllipsized(0, 0, _display->width(), _node_prefs->node_name);
+    else _display->print(_node_prefs->node_name);
 
     // battery voltage
-    renderBatteryIndicator(_board->getBattMilliVolts());
+    if (!compact) renderBatteryIndicator(_board->getBattMilliVolts());
 
     // freq / sf
-    _display->setCursor(0, 20);
+    _display->setCursor(0, compact ? 12 : 20);
     _display->setColor(UIColor::secondary_txt);
     sprintf(tmp, "FREQ: %06.3f SF%d", _node_prefs->freq, _node_prefs->sf);
     _display->print(tmp);
 
     // bw / cr
-    _display->setCursor(0, 30);
+    _display->setCursor(0, compact ? 24 : 30);
     sprintf(tmp, "BW: %03.2f CR: %d", _node_prefs->bw, _node_prefs->cr);
-    _display->print(tmp);
+    if (!compact || hasConnection() || the_mesh.getBLEPin() == 0) _display->print(tmp);
 
     // BT pin
     if (!hasConnection() && the_mesh.getBLEPin() != 0) {
       _display->setColor(UIColor::warning_txt);
-      _display->setTextSize(2);
-      _display->setCursor(0, 43);
+      _display->setTextSize(compact ? 1 : 2);
+      _display->setCursor(0, compact ? 24 : 43);
       sprintf(tmp, "Pin:%d", the_mesh.getBLEPin());
       _display->print(tmp);
       _display->setColor(UIColor::primary_txt);
